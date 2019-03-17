@@ -1,6 +1,8 @@
 # RePr
 My implementation of RePr training scheme in PyTorch. https://arxiv.org/pdf/1811.07275.pdf
 
+[详见 Blog](https://siahuat0727.github.io/2019/03/17/repr/)
+
 Usage: (`python main.py --help`)
 ```
 usage: main.py [-h] [--lr LR] [--repr] [--S1 S1] [--S2 S2] [--epochs EPOCHS]
