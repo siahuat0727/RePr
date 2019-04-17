@@ -15,7 +15,8 @@ from average_meter import AverageMeter
 from utils import qr_null, test_filter_sparsity, accuracy
 from tensorboardX import SummaryWriter
 
-parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
+parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training',
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--lr', type=float, default=0.01, help="learning rate")
 parser.add_argument('--repr', action='store_true', help="whether to use RePr training scheme")
 parser.add_argument('--S1', type=int, default=20, help="S1 epochs for RePr")
@@ -156,6 +157,7 @@ def pruning(conv_weights, prune_ratio):
     drop_filters = {}
     for name, W in conv_weights:
         mask[name] = np.where(inter_filter_ortho[name] > threshold)[0]
+        drop_filters[name] = None
         if mask[name].size > 0:
             with torch.no_grad():
                 drop_filters[name] = W.data[mask[name]].view(mask[name].size, -1).cpu().numpy()
@@ -174,7 +176,11 @@ def reinitialize(mask, drop_filters, conv_weights, fc_weights):
                 # find null space
                 size = W.size()
                 W2d = W.view(size[0], -1).cpu().numpy()
-                null_space = qr_null(np.vstack((drop_filters[name], W2d)))
+                if drop_filters[name] is None:
+                    all_filters = W2d
+                else:
+                    all_filters = np.vstack((drop_filters[name], W2d))
+                null_space = qr_null(all_filters)
                 null_space = torch.from_numpy(null_space).cuda()
                 null_space = null_space.transpose(0, 1).view(-1, size[1], size[2], size[3])
 
