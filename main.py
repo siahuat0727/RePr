@@ -146,7 +146,7 @@ def pruning(conv_weights, prune_ratio):
         W2d = F.normalize(W2d, p=2, dim=1)
         W_WT = torch.mm(W2d, W2d.transpose(0, 1))
         I = torch.eye(W_WT.size()[0], dtype=torch.float32).cuda()
-        P = W_WT - I
+        P = torch.abs(W_WT - I)
         P = P.sum(dim=1) / size[0]
         inter_filter_ortho[name] = P.cpu().detach().numpy()
     # the ranking is computed overall the filters in the network
