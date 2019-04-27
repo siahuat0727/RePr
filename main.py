@@ -3,6 +3,7 @@ from __future__ import print_function
 import math
 import argparse
 import time
+import datetime
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,6 +11,8 @@ import torch.backends.cudnn as cudnn
 import torchvision
 import torchvision.transforms as transforms
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 from models import Vanilla
 from average_meter import AverageMeter
 from utils import qr_null, test_filter_sparsity, accuracy
@@ -152,11 +155,14 @@ def pruning(conv_weights, prune_ratio):
     # the ranking is computed overall the filters in the network
     ranks = np.concatenate([v.flatten() for v in inter_filter_ortho.values()])
     threshold = np.percentile(ranks, 100*(1-prune_ratio))
-    # get indice of bad filters
+
+    prune = {}
     mask = {}
     drop_filters = {}
     for name, W in conv_weights:
-        mask[name] = np.where(inter_filter_ortho[name] > threshold)[0]
+        prune[name] = inter_filter_ortho[name] > threshold  # e.g. [True, False, True, True, False]
+        # get indice of bad filters
+        mask[name] = np.where(prune[name])[0]  # e.g. [0, 2, 3]
         drop_filters[name] = None
         if mask[name].size > 0:
             with torch.no_grad():
@@ -164,7 +170,7 @@ def pruning(conv_weights, prune_ratio):
                 W.data[mask[name]] = 0
 
     test_filter_sparsity(conv_weights)
-    return mask, drop_filters
+    return prune, mask, drop_filters
 
 def reinitialize(mask, drop_filters, conv_weights, fc_weights):
     print('Reinitializing...')
@@ -176,11 +182,8 @@ def reinitialize(mask, drop_filters, conv_weights, fc_weights):
                 # find null space
                 size = W.size()
                 W2d = W.view(size[0], -1).cpu().numpy()
-                if drop_filters[name] is None:
-                    all_filters = W2d
-                else:
-                    all_filters = np.vstack((drop_filters[name], W2d))
-                null_space = qr_null(all_filters)
+                null_space = qr_null(
+                    W2d if drop_filters[name] is None else np.vstack((drop_filters[name], W2d)))
                 null_space = torch.from_numpy(null_space).cuda()
                 null_space = null_space.transpose(0, 1).view(-1, size[1], size[2], size[3])
 
@@ -190,8 +193,7 @@ def reinitialize(mask, drop_filters, conv_weights, fc_weights):
                 null_count = 0
                 for mask_idx in mask[name]:
                     if null_count < null_space.size(0):
-                        W.data[mask_idx] = null_space.data[null_count]
-                        W.data[mask_idx].clamp_(-stdv, stdv)
+                        W.data[mask_idx] = null_space.data[null_count].clamp_(-stdv, stdv)
                         null_count += 1
                     else:
                         W.data[mask_idx].uniform_(-stdv, stdv)
@@ -260,17 +262,19 @@ def main():
 
     criterion = nn.CrossEntropyLoss().cuda()
     optimizer = torch.optim.SGD(model.parameters(), args.lr)
-    writer = SummaryWriter(comment="-{}-{}-{}".format(
-        "repr" if args.repr else "norepr", args.epochs, args.comment))
+    comment = "-{}-{}-{}".format("repr" if args.repr else "norepr", args.epochs, args.comment)
+    writer = SummaryWriter(comment=comment)
 
     mask = None
     drop_filters = None
     best_acc = 0  # best test accuracy
+    prune_map = []
     for epoch in range(args.epochs):
         if args.repr:
             # check if the end of S1 stage
             if any(epoch == s for s in range(args.S1, args.epochs, args.S1+args.S2)):
-                mask, drop_filters = pruning(conv_weights, args.prune_ratio)
+                prune, mask, drop_filters = pruning(conv_weights, args.prune_ratio)
+                prune_map.append(np.concatenate(list(prune.values())))
             # check if the end of S2 stage
             if any(epoch == s for s in range(args.S1+args.S2, args.epochs, args.S1+args.S2)):
                 reinitialize(mask, drop_filters, conv_weights, fc_weights)
@@ -281,6 +285,19 @@ def main():
 
     writer.close()
     print('overall  best_acc is {}'.format(best_acc))
+
+    # Shows which filters turn off as training progresses
+    prune_map = np.array(prune_map).transpose()
+    plt.matshow(prune_map.astype(np.int), cmap=ListedColormap(['k', 'w']))
+    plt.xticks(np.arange(prune_map.shape[1]))
+    plt.yticks(np.arange(prune_map.shape[0]))
+    plt.title('Filters on/off map\nwhite: off (pruned)\nblack: on')
+    plt.xlabel('Pruning stage')
+    plt.ylabel('Filter index from shallower layer to deeper layer')
+    plt.savefig('{}-{}.png'.format(
+        datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S'),
+        comment))
+
 
 if __name__ == '__main__':
     main()
