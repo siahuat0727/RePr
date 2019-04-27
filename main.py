@@ -295,17 +295,18 @@ def main():
     print('overall  best_acc is {}'.format(best_acc))
 
     # Shows which filters turn off as training progresses
-    prune_map = np.array(prune_map).transpose()
-    print(prune_map)
-    plt.matshow(prune_map.astype(np.int), cmap=ListedColormap(['k', 'w']))
-    plt.xticks(np.arange(prune_map.shape[1]))
-    plt.yticks(np.arange(prune_map.shape[0]))
-    plt.title('Filters on/off map\nwhite: off (pruned)\nblack: on')
-    plt.xlabel('Pruning stage')
-    plt.ylabel('Filter index from shallower layer to deeper layer')
-    plt.savefig('{}-{}.png'.format(
-        datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S'),
-        comment))
+    if args.repr:
+        prune_map = np.array(prune_map).transpose()
+        print(prune_map)
+        plt.matshow(prune_map.astype(np.int), cmap=ListedColormap(['k', 'w']))
+        plt.xticks(np.arange(prune_map.shape[1]))
+        plt.yticks(np.arange(prune_map.shape[0]))
+        plt.title('Filters on/off map\nwhite: off (pruned)\nblack: on')
+        plt.xlabel('Pruning stage')
+        plt.ylabel('Filter index from shallower layer to deeper layer')
+        plt.savefig('{}-{}.png'.format(
+            datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S'),
+            comment))
 
 
 if __name__ == '__main__':
