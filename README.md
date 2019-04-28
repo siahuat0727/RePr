@@ -74,4 +74,4 @@ Std  | RePr
 
 ![](https://github.com/siahuat0727/RePr/blob/master/imgs/lr0.003.png)
 
-For more information, please visit [my blog](https://siahuat0727.github.io/2019/03/17/repr/) (Last updated on 2019-04-28)
+For more information, please visit [my blog](https://siahuat0727.github.io/2019/03/17/repr/). (Last updated on 2019-04-28)
