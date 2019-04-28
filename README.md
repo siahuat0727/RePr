@@ -49,7 +49,7 @@ Std  | RePr
 ---- | ----
 72.1 | 76.4
 
-![](/img/paper-result.png)
+![](https://github.com/siahuat0727/RePr/blob/master/imgs/paper-result.png)
 
 ### My implementation
 
@@ -60,7 +60,7 @@ Std  | RePr
 ---- | ----
 77.84| 74.48
 
-![](/img/lr0.01.png)
+![](https://github.com/siahuat0727/RePr/blob/master/imgs/lr0.01.png)
 
 
 Without data augmentation
@@ -70,6 +70,6 @@ Std  | RePr
 ---- | ----
 64.86| 69.05
 
-![](/img/lr0.01.png)
+![](https://github.com/siahuat0727/RePr/blob/master/imgs/lr0.003.png)
 
 For more information, please visit [my blog](https://siahuat0727.github.io/2019/03/17/repr/) (Last updated on 2019-04-28)
