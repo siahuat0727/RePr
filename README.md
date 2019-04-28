@@ -54,6 +54,7 @@ Std  | RePr
 ### My implementation
 
 With data augmentation (`torchvision.transforms.RandomCrop`)
+
 learning rate = 0.01
 
 Std  | RePr
@@ -64,6 +65,7 @@ Std  | RePr
 
 
 Without data augmentation
+
 learning rate = 0.003
 
 Std  | RePr
