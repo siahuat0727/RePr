@@ -179,12 +179,11 @@ def reinitialize(mask, drop_filters, conv_weights, fc_weights, zero_init):
         prev_layer_name = None
         prev_num_filters = None
         for name, W in conv_weights + fc_weights:
-            if W.dim() == 4:  # conv weights
+            if W.dim() == 4 and drop_filters[name] is not None:  # conv weights
                 # find null space
                 size = W.size()
                 W2d = W.view(size[0], -1).cpu().numpy()
-                null_space = qr_null(
-                    W2d if drop_filters[name] is None else np.vstack((drop_filters[name], W2d)))
+                null_space = qr_null(np.vstack((drop_filters[name], W2d)))
                 null_space = torch.from_numpy(null_space).cuda()
                 null_space = null_space.transpose(0, 1).view(-1, size[1], size[2], size[3])
 
